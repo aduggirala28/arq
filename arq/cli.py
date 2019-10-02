@@ -3,6 +3,7 @@ import logging.config
 import os
 import sys
 from signal import Signals
+from contextlib import suppress
 
 import click
 from pydantic.utils import import_string
