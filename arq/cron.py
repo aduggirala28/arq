@@ -6,7 +6,7 @@ from typing import Callable, Optional, Union
 
 from pydantic.utils import import_string
 
-from arq.utils import SecondsTimedelta, to_seconds
+from arq.utils import SecondsTimedelta, to_seconds, iscoroutine_or_partial
 
 
 class D(str, Enum):
@@ -169,7 +169,7 @@ def cron(
         name = name or 'cron:' + coroutine
         coroutine = import_string(coroutine)
 
-    assert asyncio.iscoroutinefunction(coroutine), f'{coroutine} is not a coroutine function'
+    assert asyncio.iscoroutinefunction_or_partial(coroutine), f'{coroutine} is not a coroutine or partial function'
     timeout = to_seconds(timeout)
     keep_result = to_seconds(keep_result)
 

@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Optional, Union
+from functools import partial
 
 logger = logging.getLogger('arq.utils')
 
@@ -84,3 +85,9 @@ def args_to_string(args, kwargs):
             arguments += ', '
         arguments += ', '.join(f'{k}={v!r}' for k, v in sorted(kwargs.items()))
     return truncate(arguments)
+
+
+def iscoroutinefunction_or_partial(object):
+    if isinstance(object, partial):
+        object = object.func
+    return asyncio.iscoroutinefunction(object)
