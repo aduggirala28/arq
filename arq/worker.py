@@ -8,6 +8,7 @@ from functools import partial
 from signal import Signals
 from time import time
 from typing import Awaitable, Callable, Dict, List, Optional, Sequence, Union
+from contextlib import suppress
 
 import async_timeout
 from aioredis import MultiExecError
@@ -561,7 +562,7 @@ class Worker:
     def _jobs_started(self):
         return self.jobs_complete + self.jobs_retried + self.jobs_failed + len(self.tasks)
 
-    def handle_sig(self, signum):
+    async def handle_sig(self, signum):
         sig = Signals(signum)
         logger.info(
             'shutdown on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel',
@@ -574,6 +575,8 @@ class Worker:
         for t in self.tasks:
             if not t.done():
                 t.cancel()
+                with suppress(asyncio.CancelledError):
+                    await t
         self.main_task and self.main_task.cancel()
         self.on_stop and self.on_stop(sig)
 

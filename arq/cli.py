@@ -39,8 +39,10 @@ def cli(*, worker_settings, burst, check, watch, verbose):
     else:
         kwargs = {} if burst is None else {'burst': burst}
         if watch:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(watch_reload(watch, worker_settings, loop))
+            with suppress(asyncio.CancelledError):
+                loop = asyncio.get_event_loop()
+                while True:
+                    loop.run_until_complete(watch_reload(watch, worker_settings, loop))
         else:
             run_worker(worker_settings, **kwargs)
 
@@ -58,8 +60,11 @@ async def watch_reload(path, worker_settings, loop):
         loop.create_task(worker.async_run())
         async for _ in awatch(path, stop_event=stop_event):
             print('\nfiles changed, reloading arq worker...')
-            worker.handle_sig(Signals.SIGUSR1)
+            await worker.handle_sig(Signals.SIGUSR1)
             await worker.close()
             loop.create_task(worker.async_run())
+    except asyncio.CancelledError:
+        # happens on shutdown, sort of acceptable
+        pass
     finally:
         await worker.close()
