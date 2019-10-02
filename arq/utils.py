@@ -87,7 +87,7 @@ def args_to_string(args, kwargs):
     return truncate(arguments)
 
 
-def iscoroutinefunction_or_partial(object):
+def iscoroutine_or_partial(object):
     if isinstance(object, partial):
         object = object.func
     return asyncio.iscoroutinefunction(object)
