@@ -169,7 +169,7 @@ def cron(
         name = name or 'cron:' + coroutine
         coroutine = import_string(coroutine)
 
-    assert asyncio.iscoroutine_or_partial(coroutine), f'{coroutine} is not a coroutine or partial function'
+    assert iscoroutine_or_partial(coroutine), f'{coroutine} is not a coroutine function or a partial'
     timeout = to_seconds(timeout)
     keep_result = to_seconds(keep_result)
 
