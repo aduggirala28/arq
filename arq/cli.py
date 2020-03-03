@@ -25,7 +25,8 @@ verbose_help = 'Enable verbose output.'
 @click.option('--check', is_flag=True, help=health_check_help)
 @click.option('--watch', type=click.Path(exists=True, dir_okay=True, file_okay=False), help=watch_help)
 @click.option('-v', '--verbose', is_flag=True, help=verbose_help)
-def cli(*, worker_settings, burst, check, watch, verbose):
+@click.option('-w', '--wid', default="0", help="Process identifier (Circus Process monitor's $WID)")
+def cli(*, worker_settings, burst, check, watch, verbose, wid):
     """
     Job queues in python with asyncio and redis.
 
@@ -33,7 +34,8 @@ def cli(*, worker_settings, burst, check, watch, verbose):
     """
     sys.path.append(os.getcwd())
     worker_settings = import_string(worker_settings)
-    logging.config.dictConfig(default_log_config(verbose))
+    prepend = f"worker.{wid} | "
+    logging.config.dictConfig(default_log_config(verbose, prepend))
 
     if check:
         exit(check_health(worker_settings))
