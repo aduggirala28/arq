@@ -4,7 +4,8 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from operator import attrgetter
-from typing import Any, List, Optional, Union
+from ssl import SSLContext
+from typing import Any, List, Optional, Tuple, Union
 from uuid import uuid4
 
 import aioredis
@@ -25,13 +26,17 @@ class RedisSettings:
     Used by :func:`arq.connections.create_pool` and :class:`arq.worker.Worker`.
     """
 
-    host: str = 'localhost'
+    host: Union[str, List[Tuple[str, int]]] = 'localhost'
     port: int = 6379
     database: int = 0
     password: str = None
+    ssl: [bool, None, SSLContext] = None
     conn_timeout: int = 1
     conn_retries: int = 5
     conn_retry_delay: int = 1
+
+    sentinel: bool = False
+    sentinel_master: str = 'mymaster'
 
     def __repr__(self):
         return '<RedisSettings {}>'.format(' '.join(f'{k}={v}' for k, v in self.__dict__.items()))
@@ -126,7 +131,7 @@ class ArqRedis(Redis):
                 # https://github.com/samuelcolvin/arq/issues/131, avoid warnings in log
                 await asyncio.gather(*tr._results, return_exceptions=True)
                 return
-        return Job(job_id, redis=self, _deserializer=self.job_deserializer)
+        return Job(job_id, redis=self, _queue_name=_queue_name, _deserializer=self.job_deserializer)
 
     async def _get_job_result(self, key) -> JobResult:
         job_id = key[len(result_key_prefix) :]
@@ -171,24 +176,33 @@ async def create_pool(
     thus allowing job enqueuing.
     """
     settings = settings or RedisSettings()
-    addr = settings.host, settings.port
-    try:
-        pool = await aioredis.create_redis_pool(
-            addr,
-            db=settings.database,
-            password=settings.password,
-            timeout=settings.conn_timeout,
-            encoding='utf8',
-            commands_factory=functools.partial(
-                ArqRedis, job_serializer=job_serializer, job_deserializer=job_deserializer
-            ),
+
+    assert not (
+        type(settings.host) is str and settings.sentinel
+    ), "str provided for 'host' but 'sentinel' is true; list of sentinels expected"
+
+    if settings.sentinel:
+        addr = settings.host
+
+        async def pool_factory(*args, **kwargs):
+            client = await aioredis.sentinel.create_sentinel_pool(*args, ssl=settings.ssl, **kwargs)
+            return client.master_for(settings.sentinel_master)
+
+    else:
+        pool_factory = functools.partial(
+            aioredis.create_pool, create_connection_timeout=settings.conn_timeout, ssl=settings.ssl
         )
+        addr = settings.host, settings.port
+
+    try:
+        pool = await pool_factory(addr, db=settings.database, password=settings.password, encoding='utf8')
+        pool = ArqRedis(pool, job_serializer=job_serializer, job_deserializer=job_deserializer)
+
     except (ConnectionError, OSError, aioredis.RedisError, asyncio.TimeoutError) as e:
         if retry < settings.conn_retries:
             logger.warning(
-                'redis connection error %s:%s %s %s, %d retries remaining...',
-                settings.host,
-                settings.port,
+                'redis connection error %s %s %s, %d retries remaining...',
+                addr,
                 e.__class__.__name__,
                 e,
                 settings.conn_retries - retry,

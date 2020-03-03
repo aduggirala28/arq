@@ -3,6 +3,24 @@
 History
 -------
 
+v0.18.4 (2019-12-19)
+....................
+* Add ``py.typed`` file to tell mypy the package has type hints, #163
+* Added ``ssl`` option to ``RedisSettings``, #165
+
+v0.18.3 (2019-11-13)
+....................
+* Include ``queue_name`` when for job object in response to ``enqueue_job``, #160
+
+v0.18.2 (2019-11-01)
+....................
+* Fix cron scheduling on a specific queue, by @dmvass and @Tinche
+
+v0.18.1 (2019-10-28)
+....................
+* add support for Redis Sentinel fix #132
+* fix ``Worker.abort_job`` invalid expire time error, by @dmvass
+
 v0.18 (2019-08-30)
 ..................
 * fix usage of ``max_burst_jobs``, improve coverage fix #152

@@ -152,7 +152,7 @@ class Worker:
 
     def __init__(
         self,
-        functions: Sequence[Function] = (),
+        functions: Sequence[Union[Function, Callable]] = (),
         *,
         queue_name: str = default_queue_name,
         cron_jobs: Optional[Sequence[CronJob]] = None,
@@ -511,7 +511,7 @@ class Worker:
             tr.delete(retry_key_prefix + job_id, in_progress_key_prefix + job_id, job_key_prefix + job_id)
             tr.zrem(self.queue_name, job_id)
             # result_data would only be None if serializing the result fails
-            if result_data is not None:  # pragma: no branch
+            if result_data is not None and self.keep_result_s > 0:  # pragma: no branch
                 tr.setex(result_key_prefix + job_id, self.keep_result_s, result_data)
             await tr.execute()
 
@@ -532,7 +532,7 @@ class Worker:
 
             if n >= cron_job.next_run:
                 job_id = f'{cron_job.name}:{to_unix_ms(cron_job.next_run)}' if cron_job.unique else None
-                job_futures.add(self.pool.enqueue_job(cron_job.name, _job_id=job_id))
+                job_futures.add(self.pool.enqueue_job(cron_job.name, _job_id=job_id, _queue_name=self.queue_name))
                 cron_job.set_next(n)
 
         job_futures and await asyncio.gather(*job_futures)
