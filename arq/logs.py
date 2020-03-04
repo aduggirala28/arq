@@ -13,6 +13,6 @@ def default_log_config(verbose: bool, prepend: str) -> dict:
         'handlers': {
             'arq.standard': {'level': log_level, 'class': 'logging.StreamHandler', 'formatter': 'arq.standard'}
         },
-        'formatters': {'arq.standard': {'format': prepend + '%(asctime)s: %(message)s', 'datefmt': '%H:%M:%S'}},
+        'formatters': {'arq.standard': {'format': prepend + '%(asctime)s %(message)s', 'datefmt': '%H:%M:%S'}},
         'loggers': {'arq': {'handlers': ['arq.standard'], 'level': log_level}},
     }
