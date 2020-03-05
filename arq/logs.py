@@ -1,9 +1,8 @@
-def default_log_config(verbose: bool, prepend: str) -> dict:
+def default_log_config(verbose: bool) -> dict:
     """
     Setup default config. for dictConfig.
 
     :param verbose: level: DEBUG if True, INFO if False
-    :param prepend: Prepend text derived from Circus process identifier
     :return: dict suitable for ``logging.config.dictConfig``
     """
     log_level = 'DEBUG' if verbose else 'INFO'
@@ -13,6 +12,6 @@ def default_log_config(verbose: bool, prepend: str) -> dict:
         'handlers': {
             'arq.standard': {'level': log_level, 'class': 'logging.StreamHandler', 'formatter': 'arq.standard'}
         },
-        'formatters': {'arq.standard': {'format': prepend + '%(asctime)s %(message)s', 'datefmt': '%H:%M:%S'}},
+        'formatters': {'arq.standard': {'format': '%(prepend)s%(asctime)s %(message)s', 'datefmt': '%H:%M:%S'}},
         'loggers': {'arq': {'handlers': ['arq.standard'], 'level': log_level}},
     }

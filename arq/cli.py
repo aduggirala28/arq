@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import logging.config
 import os
 import sys
@@ -25,7 +26,7 @@ verbose_help = 'Enable verbose output.'
 @click.option('--check', is_flag=True, help=health_check_help)
 @click.option('--watch', type=click.Path(exists=True, dir_okay=True, file_okay=False), help=watch_help)
 @click.option('-v', '--verbose', is_flag=True, help=verbose_help)
-@click.option('-w', '--wid', default="0", help="Process identifier (Circus Process monitor's $WID)")
+@click.option('-w', '--wid', default=0, type=int, help="Process identifier (Circus Process monitor's $WID)")
 def cli(*, worker_settings, burst, check, watch, verbose, wid):
     """
     Job queues in python with asyncio and redis.
@@ -34,8 +35,17 @@ def cli(*, worker_settings, burst, check, watch, verbose, wid):
     """
     sys.path.append(os.getcwd())
     worker_settings = import_string(worker_settings)
-    prepend = f"worker.{wid} | "
-    logging.config.dictConfig(default_log_config(verbose, prepend))
+
+    prepend = f"worker.{wid:02d} | "
+    old_factory = logging.getLogRecordFactory()
+
+    def record_factory(*args, **kwargs):
+        record = old_factory(*args, **kwargs)
+        record.prepend = prepend
+        return record
+
+    logging.setLogRecordFactory(record_factory)
+    logging.config.dictConfig(default_log_config(verbose))
 
     if check:
         exit(check_health(worker_settings))
