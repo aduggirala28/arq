@@ -45,7 +45,7 @@ def cli(*, worker_settings, burst, check, watch, verbose, wid):
         return record
 
     logging.setLogRecordFactory(record_factory)
-    logging.config.dictConfig(default_log_config(verbose))
+    logging.config.dictConfig(default_log_config(verbose, prepend))
 
     if check:
         exit(check_health(worker_settings))

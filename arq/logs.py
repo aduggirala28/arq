@@ -1,8 +1,9 @@
-def default_log_config(verbose: bool) -> dict:
+def default_log_config(verbose: bool, prepend: str) -> dict:
     """
     Setup default config. for dictConfig.
 
     :param verbose: level: DEBUG if True, INFO if False
+    :param prepend: Prepend text derived from Circus process identifier
     :return: dict suitable for ``logging.config.dictConfig``
     """
     log_level = 'DEBUG' if verbose else 'INFO'
