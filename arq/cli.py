@@ -51,23 +51,24 @@ def cli(*, worker_settings, burst, check, watch, verbose, wid):
         exit(check_health(worker_settings))
     else:
         kwargs = {} if burst is None else {'burst': burst}
+        kwargs['prepend'] = prepend
         if watch:
             with suppress(asyncio.CancelledError):
                 loop = asyncio.get_event_loop()
                 while True:
-                    loop.run_until_complete(watch_reload(watch, worker_settings, loop))
+                    loop.run_until_complete(watch_reload(watch, worker_settings, loop, **kwargs))
         else:
             run_worker(worker_settings, **kwargs)
 
 
-async def watch_reload(path, worker_settings, loop):
+async def watch_reload(path, worker_settings, loop, **kwargs):
     try:
         from watchgod import awatch
     except ImportError as e:  # pragma: no cover
         raise ImportError('watchgod not installed, use `pip install watchgod`') from e
 
     stop_event = asyncio.Event()
-    worker = create_worker(worker_settings)
+    worker = create_worker(worker_settings, **kwargs)
     try:
         worker.on_stop = lambda s: s != Signals.SIGUSR1 and stop_event.set()
         loop.create_task(worker.async_run())

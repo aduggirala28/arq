@@ -132,6 +132,7 @@ class Worker:
     :param cron_jobs:  list of cron jobs to run, use :func:`arq.cron.cron` to create them
     :param redis_settings: settings for creating a redis connection
     :param redis_pool: existing redis pool, generally None
+    :param prepend: prepend text derived from Circus process identifier
     :param burst: whether to stop the worker once all jobs have been run
     :param on_startup: coroutine function to run at startup
     :param on_shutdown: coroutine function to run at shutdown
@@ -158,6 +159,7 @@ class Worker:
         cron_jobs: Optional[Sequence[CronJob]] = None,
         redis_settings: RedisSettings = None,
         redis_pool: ArqRedis = None,
+        prepend: str = 'worker.__ | ',
         burst: bool = False,
         on_startup: Callable[[Dict], Awaitable] = None,
         on_shutdown: Callable[[Dict], Awaitable] = None,
@@ -183,6 +185,7 @@ class Worker:
             self.cron_jobs = cron_jobs
             self.functions.update({cj.name: cj for cj in self.cron_jobs})
         assert len(self.functions) > 0, 'at least one function or cron_job must be registered'
+        self.prepend = prepend
         self.burst = burst
         self.on_startup = on_startup
         self.on_shutdown = on_shutdown
@@ -268,6 +271,7 @@ class Worker:
         logger.info('Starting worker for %d functions: %s', len(self.functions), ', '.join(self.functions))
         await log_redis_info(self.pool, logger.info)
         self.ctx['redis'] = self.pool
+        self.ctx['prepend'] = self.prepend
         if self.on_startup:
             await self.on_startup(self.ctx)
 
